@@ -73,6 +73,7 @@ void WebServer::Start() {
     if(!isClose_) { LOG_INFO("========== Server start =========="); }
     while(!isClose_) {
         if(timeoutMS_ > 0) {
+            // 清理过期的连接，并且得到下一次处理的时间
             timeMS = timer_->GetNextTick();
         }
         int eventCnt = epoller_->Wait(timeMS);
@@ -110,6 +111,7 @@ void WebServer::SendError_(int fd, const char*info) {
     close(fd);
 }
 
+// 关闭 http 连接
 void WebServer::CloseConn_(HttpConn* client) {
     assert(client);
     LOG_INFO("Client[%d] quit!", client->GetFd());
@@ -117,6 +119,7 @@ void WebServer::CloseConn_(HttpConn* client) {
     client->Close();
 }
 
+// 添加 http 连接
 void WebServer::AddClient_(int fd, sockaddr_in addr) {
     assert(fd > 0);
     users_[fd].init(fd, addr);
@@ -143,12 +146,12 @@ void WebServer::DealListen_() {
     } while(listenEvent_ & EPOLLET);
 }
 
+// 线程池读写处理
 void WebServer::DealRead_(HttpConn* client) {
     assert(client);
     ExtentTime_(client);
     threadpool_->AddTask(std::bind(&WebServer::OnRead_, this, client));
 }
-
 void WebServer::DealWrite_(HttpConn* client) {
     assert(client);
     ExtentTime_(client);
@@ -160,6 +163,7 @@ void WebServer::ExtentTime_(HttpConn* client) {
     if(timeoutMS_ > 0) { timer_->adjust(client->GetFd(), timeoutMS_); }
 }
 
+// 读写底层
 void WebServer::OnRead_(HttpConn* client) {
     assert(client);
     int ret = -1;
@@ -171,15 +175,6 @@ void WebServer::OnRead_(HttpConn* client) {
     }
     OnProcess(client);
 }
-
-void WebServer::OnProcess(HttpConn* client) {
-    if(client->process()) {
-        epoller_->ModFd(client->GetFd(), connEvent_ | EPOLLOUT);
-    } else {
-        epoller_->ModFd(client->GetFd(), connEvent_ | EPOLLIN);
-    }
-}
-
 void WebServer::OnWrite_(HttpConn* client) {
     assert(client);
     int ret = -1;
@@ -201,6 +196,26 @@ void WebServer::OnWrite_(HttpConn* client) {
     }
     CloseConn_(client);
 }
+
+// 边缘触发实现
+// 1. 对于读操作
+// （1）当缓冲区由不可读变为可读的时候，即缓冲区由空变为不空的时候。
+// （2）当有新数据到达时，即缓冲区中的待读数据变多的时候。
+// （3）当缓冲区有数据可读，且应用进程对相应的描述符进行 EPOLL_CTL_MOD 修改 EPOLLIN 事件时。
+
+// 2. 对于写操作
+// （1）当缓冲区由不可写变为可写时。
+// （2）当有旧数据被发送走，即缓冲区中的内容变少的时候。
+// （3）当缓冲区有空间可写，且应用进程对相应的描述符进行 EPOLL_CTL_MOD 修改 EPOLLOUT 事件时。
+void WebServer::OnProcess(HttpConn* client) {
+    if(client->process()) {
+        epoller_->ModFd(client->GetFd(), connEvent_ | EPOLLOUT);
+    } else {
+        epoller_->ModFd(client->GetFd(), connEvent_ | EPOLLIN);
+    }
+}
+
+
 
 /* Create listenFd */
 bool WebServer::InitSocket_() {

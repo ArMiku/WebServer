@@ -30,18 +30,24 @@ public:
     void Start();
 
 private:
+    // 初始化 Socket
     bool InitSocket_(); 
     void InitEventMode_(int trigMode);
+    // 添加 http 连接
     void AddClient_(int fd, sockaddr_in addr);
   
     void DealListen_();
+
+    // 线程池读写处理
     void DealWrite_(HttpConn* client);
     void DealRead_(HttpConn* client);
 
     void SendError_(int fd, const char*info);
     void ExtentTime_(HttpConn* client);
+    // 关闭 http 连接
     void CloseConn_(HttpConn* client);
 
+    // 读写线程池底层
     void OnRead_(HttpConn* client);
     void OnWrite_(HttpConn* client);
     void OnProcess(HttpConn* client);
@@ -55,7 +61,7 @@ private:
     int timeoutMS_;  /* 毫秒MS */
     bool isClose_;
     int listenFd_;
-    char* srcDir_;
+    char* srcDir_;  // 需要获取的路径
     
     uint32_t listenEvent_;
     uint32_t connEvent_;
