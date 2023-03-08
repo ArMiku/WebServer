@@ -67,7 +67,7 @@ private:
     // 定时器的存储实体 小顶堆
     std::vector<TimerNode> heap_;
     
-    // 
+    // 映射一个fd对应的定时器在heap_中的位置
     std::unordered_map<int, size_t> ref_;
 };
 
