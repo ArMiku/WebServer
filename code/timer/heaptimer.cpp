@@ -34,6 +34,7 @@ bool HeapTimer::siftdown_(size_t index, size_t n) {
     return i > index;
 }
 
+// 添加一个定时器
 void HeapTimer::add(int id, int timeout, const TimeoutCallBack& cb) {
     assert(id >= 0);
     size_t i;
@@ -55,6 +56,7 @@ void HeapTimer::add(int id, int timeout, const TimeoutCallBack& cb) {
     }
 }
 
+// 删除制定id节点，并且用指针触发处理函数
 void HeapTimer::doWork(int id) {
     /* 删除指定id结点，并触发回调函数 */
     if(heap_.empty() || ref_.count(id) == 0) {
@@ -91,6 +93,7 @@ void HeapTimer::adjust(int id, int timeout) {
     siftdown_(ref_[id], heap_.size());
 }
 
+// 处理过期的定时器
 void HeapTimer::tick() {
     /* 清除超时结点 */
     if(heap_.empty()) {
@@ -116,6 +119,7 @@ void HeapTimer::clear() {
     heap_.clear();
 }
 
+// 下一次处理过期定时器的时间
 int HeapTimer::GetNextTick() {
     tick();
     size_t res = -1;
