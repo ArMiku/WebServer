@@ -60,6 +60,7 @@ void HttpResponse::Init(const string& srcDir, string& path, bool isKeepAlive, in
     mmFileStat_ = { 0 };
 }
 
+// 生成响应报文的主函数
 void HttpResponse::MakeResponse(Buffer& buff) {
     /* 判断请求的资源文件 */
     if(stat((srcDir_ + path_).data(), &mmFileStat_) < 0 || S_ISDIR(mmFileStat_.st_mode)) {
@@ -77,14 +78,15 @@ void HttpResponse::MakeResponse(Buffer& buff) {
     AddContent_(buff);
 }
 
+// 返回文件信息
 char* HttpResponse::File() {
     return mmFile_;
 }
-
 size_t HttpResponse::FileLen() const {
     return mmFileStat_.st_size;
 }
 
+// 4XX 状态码情况
 void HttpResponse::ErrorHtml_() {
     if(CODE_PATH.count(code_) == 1) {
         path_ = CODE_PATH.find(code_)->second;
@@ -92,6 +94,7 @@ void HttpResponse::ErrorHtml_() {
     }
 }
 
+// 生成相应报文的请求行、请求头和数据体
 void HttpResponse::AddStateLine_(Buffer& buff) {
     string status;
     if(CODE_STATUS.count(code_) == 1) {
@@ -104,6 +107,7 @@ void HttpResponse::AddStateLine_(Buffer& buff) {
     buff.Append("HTTP/1.1 " + to_string(code_) + " " + status + "\r\n");
 }
 
+// 生成相应报文的请求头
 void HttpResponse::AddHeader_(Buffer& buff) {
     buff.Append("Connection: ");
     if(isKeepAlive_) {
@@ -115,6 +119,7 @@ void HttpResponse::AddHeader_(Buffer& buff) {
     buff.Append("Content-type: " + GetFileType_() + "\r\n");
 }
 
+// 生成相应报文的数据体
 void HttpResponse::AddContent_(Buffer& buff) {
     int srcFd = open((srcDir_ + path_).data(), O_RDONLY);
     if(srcFd < 0) { 
@@ -135,6 +140,7 @@ void HttpResponse::AddContent_(Buffer& buff) {
     buff.Append("Content-length: " + to_string(mmFileStat_.st_size) + "\r\n\r\n");
 }
 
+// 共享内存扫尾函数
 void HttpResponse::UnmapFile() {
     if(mmFile_) {
         munmap(mmFile_, mmFileStat_.st_size);
@@ -142,6 +148,7 @@ void HttpResponse::UnmapFile() {
     }
 }
 
+// 获取文件类型
 string HttpResponse::GetFileType_() {
     /* 判断文件类型 */
     string::size_type idx = path_.find_last_of('.');
@@ -155,6 +162,7 @@ string HttpResponse::GetFileType_() {
     return "text/plain";
 }
 
+// 请求打不开返回错误信息
 void HttpResponse::ErrorContent(Buffer& buff, string message) 
 {
     string body;

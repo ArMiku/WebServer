@@ -15,6 +15,7 @@ HttpConn::~HttpConn() {
     Close(); 
 };
 
+// 初始化 http 连接
 void HttpConn::init(int fd, const sockaddr_in& addr) {
     assert(fd > 0);
     userCount++;
@@ -26,6 +27,7 @@ void HttpConn::init(int fd, const sockaddr_in& addr) {
     LOG_INFO("Client[%d](%s:%d) in, userCount:%d", fd_, GetIP(), GetPort(), (int)userCount);
 }
 
+// 关闭 http 连接
 void HttpConn::Close() {
     response_.UnmapFile();
     if(isClose_ == false){
@@ -36,22 +38,27 @@ void HttpConn::Close() {
     }
 }
 
+// 获取 http 连接描述符，也是唯一标志
 int HttpConn::GetFd() const {
     return fd_;
 };
+
 
 struct sockaddr_in HttpConn::GetAddr() const {
     return addr_;
 }
 
+// 获取 IP 信息
 const char* HttpConn::GetIP() const {
     return inet_ntoa(addr_.sin_addr);
 }
 
+// 获取端口号
 int HttpConn::GetPort() const {
     return addr_.sin_port;
 }
 
+// 每个连接中定义的缓冲区读写接口
 ssize_t HttpConn::read(int* saveErrno) {
     ssize_t len = -1;
     do {
@@ -62,7 +69,6 @@ ssize_t HttpConn::read(int* saveErrno) {
     } while (isET);
     return len;
 }
-
 ssize_t HttpConn::write(int* saveErrno) {
     ssize_t len = -1;
     do {
@@ -89,6 +95,7 @@ ssize_t HttpConn::write(int* saveErrno) {
     return len;
 }
 
+// 用于完成解析请求和响应请求的整体逻辑
 bool HttpConn::process() {
     request_.Init();
     if(readBuff_.ReadableBytes() <= 0) {

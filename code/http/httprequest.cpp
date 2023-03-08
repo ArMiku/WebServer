@@ -15,6 +15,7 @@ void HttpRequest::Init() {
     post_.clear();
 }
 
+// http 连接是否存货
 bool HttpRequest::IsKeepAlive() const {
     if(header_.count("Connection") == 1) {
         return header_.find("Connection")->second == "keep-alive" && version_ == "1.1";
@@ -22,6 +23,7 @@ bool HttpRequest::IsKeepAlive() const {
     return false;
 }
 
+// 有限状态自动机解析 http 请求
 bool HttpRequest::parse(Buffer& buff) {
     const char CRLF[] = "\r\n";
     if(buff.ReadableBytes() <= 0) {
@@ -57,6 +59,7 @@ bool HttpRequest::parse(Buffer& buff) {
     return true;
 }
 
+// 处理路径信息
 void HttpRequest::ParsePath_() {
     if(path_ == "/") {
         path_ = "/index.html"; 
@@ -71,6 +74,7 @@ void HttpRequest::ParsePath_() {
     }
 }
 
+// 解析请求行
 bool HttpRequest::ParseRequestLine_(const string& line) {
     regex patten("^([^ ]*) ([^ ]*) HTTP/([^ ]*)$");
     smatch subMatch;
@@ -85,6 +89,7 @@ bool HttpRequest::ParseRequestLine_(const string& line) {
     return false;
 }
 
+// 解析请求头
 void HttpRequest::ParseHeader_(const string& line) {
     regex patten("^([^:]*): ?(.*)$");
     smatch subMatch;
@@ -95,7 +100,7 @@ void HttpRequest::ParseHeader_(const string& line) {
         state_ = BODY;
     }
 }
-
+// 解析数据体
 void HttpRequest::ParseBody_(const string& line) {
     body_ = line;
     ParsePost_();
@@ -103,12 +108,14 @@ void HttpRequest::ParseBody_(const string& line) {
     LOG_DEBUG("Body:%s, len:%d", line.c_str(), line.size());
 }
 
+// 转换十六进制
 int HttpRequest::ConverHex(char ch) {
     if(ch >= 'A' && ch <= 'F') return ch -'A' + 10;
     if(ch >= 'a' && ch <= 'f') return ch -'a' + 10;
     return ch;
 }
 
+// 解析 post 报文
 void HttpRequest::ParsePost_() {
     if(method_ == "POST" && header_["Content-Type"] == "application/x-www-form-urlencoded") {
         ParseFromUrlencoded_();
@@ -169,6 +176,7 @@ void HttpRequest::ParseFromUrlencoded_() {
     }
 }
 
+// 用户验证
 bool HttpRequest::UserVerify(const string &name, const string &pwd, bool isLogin) {
     if(name == "" || pwd == "") { return false; }
     LOG_INFO("Verify name:%s pwd:%s", name.c_str(), pwd.c_str());
@@ -230,21 +238,21 @@ bool HttpRequest::UserVerify(const string &name, const string &pwd, bool isLogin
     return flag;
 }
 
+// 获取 http 信息接口
 std::string HttpRequest::path() const{
     return path_;
 }
-
 std::string& HttpRequest::path(){
     return path_;
 }
 std::string HttpRequest::method() const {
     return method_;
 }
-
 std::string HttpRequest::version() const {
     return version_;
 }
 
+// post 下获取信息
 std::string HttpRequest::GetPost(const std::string& key) const {
     assert(key != "");
     if(post_.count(key) == 1) {
@@ -252,7 +260,6 @@ std::string HttpRequest::GetPost(const std::string& key) const {
     }
     return "";
 }
-
 std::string HttpRequest::GetPost(const char* key) const {
     assert(key != nullptr);
     if(post_.count(key) == 1) {
